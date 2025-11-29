@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .search-section {
+            margin-bottom: 30px;
+        }
+        .search-section input {
+            margin-bottom: 10px;
+        }
+        .contacts-list {
+            margin-top: 30px;
+        }
+        .contact-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+        .contact-info {
+            flex-grow: 1;
+        }
+        .contact-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .contact-details {
+            font-size: 13px;
+            color: #666;
+        }
+        .contact-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-delete, .btn-edit {
+            padding: 8px 12px;
+            font-size: 12px;
+            width: auto;
+        }
+        .btn-delete {
+            background: #e74c3c;
+        }
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+        .btn-edit {
+            background: #f39c12;
+        }
+        .btn-edit:hover {
+            background: #d68910;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📇 Contact Manager</h1>
+
+        <!-- Messages -->
+        <div id="message" class="message"></div>
+
+        <!-- Add Contact Form -->
+        <div class="form-section">
+            <h3 style="margin-bottom: 15px;">Add New Contact</h3>
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="text" id="phone" placeholder="123-456-7890">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="john@example.com">
+            </div>
+            <button onclick="addContact()">Add Contact</button>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="🔍 Search contacts..." onkeyup="searchContacts()">
+        </div>
+
+        <!-- Contacts List -->
+        <div class="contacts-list">
+            <h3>Contacts</h3>
+            <div id="contactsList" class="empty-state">No contacts yet</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:5000/api";
+
+        // Load contacts on page load
+        window.onload = () => {
+            loadContacts();
+        };
+
+        async function addContact() {
+            const name = document.getElementById("name").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const email = document.getElementById("email").value.trim();
+
+            if (!name || !phone || !email) {
+                showMessage("All fields are required", "error");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/contacts`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, phone, email })
+                });
+
+                if (response.ok) {
+                    showMessage("Contact added successfully!", "success");
+                    document.getElementById("name").value = "";
+                    document.getElementById("phone").value = "";
+                    document.getElementById("email").value = "";
+                    loadContacts();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || "Failed to add contact", "error");
+                }
+            } catch (error) {
+                showMessage("Error: " + error.message, "error");
+            }
+        }
+
+        async function loadContacts() {
+            try {
+                const response = await fetch(`${API_URL}/contacts`);
+                const contacts = await response.json();
+
+                const contactsList = document.getElementById("contactsList");
+                if (contacts.length === 0) {
+                    contactsList.innerHTML = '<div class="empty-state">No contacts yet</div>';
+                    return;
+                }
+
+                contactsList.innerHTML = contacts.map(c => `
+                    <div class="contact-item">
+                        <div class="contact-info">
+                            <div class="contact-name">${c.name}</div>
+                            <div class="contact-details">
+                                📞 ${c.phone} | 📧 ${c.email}
+                            </div>
+                        </div>
+                        <div class="contact-actions">
+                            <button class="btn-delete" onclick="deleteContact('${c.name}')">Delete</button>
+                        </div>
+                    </div>
+                `).join("");
+            } catch (error) {
+                showMessage("Error loading contacts: " + error.message, "error");
+            }
+        }
+
+        async function searchContacts() {
+            const query = document.getElementById("searchInput").value.trim();
+            if (!query) {
+                loadContacts();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/contacts/search?q=${encodeURIComponent(query)}`);
+                const results = await response.json();
+
+                const contactsList = document.getElementById("contactsList");
+                if (results.length === 0) {
+                    contactsList.innerHTML = '<div class="empty-state">No contacts found</div>';
+                    return;
+                }
+
+                contactsList.innerHTML = results.map(c => `
+                    <div class="contact-item">
+                        <div class="contact-info">
+                            <div class="contact-name">${c.name}</div>
+                            <div class="contact-details">
+                                📞 ${c.phone} | 📧 ${c.email}
+                            </div>
+                        </div>
+                        <div class="contact-actions">
+                            <button class="btn-delete" onclick="deleteContact('${c.name}')">Delete</button>
+                        </div>
+                    </div>
+                `).join("");
+            } catch (error) {
+                showMessage("Error searching contacts: " + error.message, "error");
+            }
+        }
+
+        async function deleteContact(name) {
+            if (!confirm(`Delete "${name}"?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/contacts/${encodeURIComponent(name)}`, {
+                    method: "DELETE"
+                });
+
+                if (response.ok) {
+                    showMessage("Contact deleted!", "success");
+                    loadContacts();
+                } else {
+                    showMessage("Failed to delete contact", "error");
+                }
+            } catch (error) {
+                showMessage("Error: " + error.message, "error");
+            }
+        }
+
+        function showMessage(msg, type) {
+            const messageEl = document.getElementById("message");
+            messageEl.textContent = msg;
+            messageEl.className = `message ${type}`;
+            setTimeout(() => messageEl.className = "message", 5000);
+        }
+    </script>
+</body>
+</html>
